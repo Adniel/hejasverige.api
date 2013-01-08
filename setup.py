@@ -26,7 +26,8 @@ setup(name='hejasverige.api',
       install_requires=[
           'setuptools',
           'Plone',
-          'plone.api'
+          'five.grok',
+          'plone.api',
           # -*- Extra requirements: -*-
       ],
       extras_require={
