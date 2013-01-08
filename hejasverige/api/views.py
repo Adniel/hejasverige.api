@@ -8,7 +8,7 @@ from five import grok
 #from StringIO import StringIO
 import json
 #from plone.directives import form
-#from hejasverige.nevosoftapi import NevosoftApiMessageFactory as _
+#from hejasverige.api import HejaSverigeApiMessageFactory as _
 from plone import api
 
 

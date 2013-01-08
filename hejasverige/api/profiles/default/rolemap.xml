@@ -5,14 +5,14 @@
   </roles>
   <permissions>
     <permission name="View" acquire="True">
-      <role name="NevosoftAPIMember"/>
+      <role name="HejaSverigeAPIMember"/>
     </permission>
     <permission name="HejaSverige: API View" acquire="True">
       <role name="Manager"/>
       <role name="Owner"/>
       <role name="Editor"/>
       <role name="Site Administrator"/>
-      <role name="NevosoftAPIMember"/>
+      <role name="HejaSverigeAPIMember"/>
     </permission>
   </permissions>
 </rolemap>

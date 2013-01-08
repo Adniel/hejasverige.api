@@ -23,7 +23,7 @@
       name="api-various"
       title="Additional HejaSverige API site policy setup"
       description="HejaSverige API site policy configuration"
-      handler="hejasverige.nevosoftapi.setuphandlers.importVarious">
+      handler="hejasverige.api.setuphandlers.importVarious">
     <depends name="rolemap"/>
   </genericsetup:importStep>  
 
