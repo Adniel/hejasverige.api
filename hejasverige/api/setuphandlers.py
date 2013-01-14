@@ -1,8 +1,8 @@
+import logging
 from Products.CMFCore.utils import getToolByName
 
-
-def setupGroups(portal):
-    print "Setting up group HejaSverigeAPI as HejaSverigeAPIMember"
+def setupGroups(portal, logger):
+    logger.info("Setting up group HejaSverigeAPI as HejaSverigeAPIMember")
     acl_users = getToolByName(portal, 'acl_users')
     if not acl_users.searchGroups(name='HejaSverigeAPI'):
         gtool = getToolByName(portal, 'portal_groups')
@@ -10,30 +10,30 @@ def setupGroups(portal):
 
 
 #   Move to hejasverige.content
-def addProperty(tool, id, value, type):
+def addProperty(tool, id, value, type, logger):
     if not tool.hasProperty(id):
-        print "Property " + id + " not found. Creating property..."
+        logger.info("Property " + id + " not found. Creating property...")
         tool.manage_addProperty(id, value, type)
 
 
 #   Move to hejasverige.content
-def addGroupProperties(portal):
-    print "Adding HejaSverige Group Properties"
+def addGroupProperties(portal, logger):
+    logger.info("Adding HejaSverige Group Properties")
     portal_groupdata = getToolByName(portal, 'portal_groupdata')
-    addProperty(portal_groupdata, 'orgnr', '', 'string')
-    addProperty(portal_groupdata, 'is_associasion', '', 'boolean')
+    addProperty(portal_groupdata, 'orgnr', '', 'string', logger)
+    addProperty(portal_groupdata, 'is_associasion', '', 'boolean', logger)
 
 
 def importVarious(context):
     """Miscellanous steps import handle
     """
-    print "Importing group info for HejaSverige API"
+    #print "Importing group info for HejaSverige API"
     if context.readDataFile('hejasverige.api-various.txt') is None:
-        print "No file called hejasverige.api-various.txt available"
+        #print "No file called hejasverige.api-various.txt available"
         return
-
+    logger = logging.getLogger('hejasverige.api')
     portal = context.getSite()
-    setupGroups(portal)
+    setupGroups(portal, logger)
 
 #   Move to hejasverige.content
-    addGroupProperties(portal)
+    addGroupProperties(portal, logger)
