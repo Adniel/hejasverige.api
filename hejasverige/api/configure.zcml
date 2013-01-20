@@ -13,7 +13,7 @@
 
   <genericsetup:registerProfile
       name="default"
-      title="HejaSverige API"
+      title="Heja Sverige API"
       directory="profiles/default"
       description="Installs the hejasverige.api package"
       provides="Products.GenericSetup.interfaces.EXTENSION"
@@ -21,8 +21,8 @@
   <!-- -*- extra stuff goes here -*- -->
    <genericsetup:importStep
       name="api-various"
-      title="Additional HejaSverige API site policy setup"
-      description="HejaSverige API site policy configuration"
+      title="Additional Heja Sverige API site policy setup"
+      description="Heja Sverige API site policy configuration"
       handler="hejasverige.api.setuphandlers.importVarious">
     <depends name="rolemap"/>
   </genericsetup:importStep>  

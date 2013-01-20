@@ -28,6 +28,7 @@ setup(name='hejasverige.api',
           'Plone',
           'five.grok',
           'plone.api',
+          'hejasverige.content'
           # -*- Extra requirements: -*-
       ],
       extras_require={

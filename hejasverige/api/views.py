@@ -209,44 +209,6 @@ class CheckUserAccountView(grok.View):
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
 
-# list-merchants
-#   filter by POS
-#   list all pos possessed by the merchant
-class ListMerchantsView(grok.View):
-    grok.context(ISiteRoot)
-    grok.name('list-merchants')
-    grok.require('zope2.View')
-
-    def render(self):
-        data = []
-        pos_serial = self.request.form.get('pos_serial', '')
-        if pos_serial != '':
-            pass
-        else:
-            pass
-
-        pos_list = []
-
-        pos_record = {'pos_serial': '1234'}
-        pos_list.append(pos_record)
-
-        pos_record = {'pos_serial': '1235'}
-        pos_list.append(pos_record)
-
-
-        merchant_record = {'corporate_id': '5555555555',
-                       'name': 'TestMerchant',
-                       'customer_id': '12345',
-                       'poses': pos_list, }
-        if pos_serial != '':
-            if pos_serial in pos_list:
-                data.append(merchant_record)
-        else:
-            data.append(merchant_record)
-
-        return json.dumps(data)
-
-    
 
 class TestView(grok.View):
     grok.context(ISiteRoot)

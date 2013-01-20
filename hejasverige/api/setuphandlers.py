@@ -1,8 +1,10 @@
 import logging
 from Products.CMFCore.utils import getToolByName
 
-def setupGroups(portal, logger):
-    logger.info("Setting up group HejaSverigeAPI as HejaSverigeAPIMember")
+
+def setupGroups(portal, logger=None):
+    if logger:
+        logger.info("Setting up group HejaSverigeAPI as HejaSverigeAPIMember")
     acl_users = getToolByName(portal, 'acl_users')
     if not acl_users.searchGroups(name='HejaSverigeAPI'):
         gtool = getToolByName(portal, 'portal_groups')
@@ -10,15 +12,17 @@ def setupGroups(portal, logger):
 
 
 #   Move to hejasverige.content
-def addProperty(tool, id, value, type, logger):
+def addProperty(tool, id, value, type, logger=None):
     if not tool.hasProperty(id):
-        logger.info("Property " + id + " not found. Creating property...")
+        if logger:
+            logger.info("Property " + id + " not found. Creating property...")
         tool.manage_addProperty(id, value, type)
 
 
 #   Move to hejasverige.content
-def addGroupProperties(portal, logger):
-    logger.info("Adding HejaSverige Group Properties")
+def addGroupProperties(portal, logger=None):
+    if logger:
+        logger.info("Adding HejaSverige Group Properties")
     portal_groupdata = getToolByName(portal, 'portal_groupdata')
     addProperty(portal_groupdata, 'orgnr', '', 'string', logger)
     addProperty(portal_groupdata, 'is_associasion', '', 'boolean', logger)
