@@ -1,22 +1,16 @@
+# -*- coding: utf-8 -*-
 
-# Zope imports
-# View is registered in portal root only
 from Products.CMFCore.interfaces import ISiteRoot
 from five import grok
-#import csv
-#from Acquisition import aq_inner
-#from StringIO import StringIO
 import json
-#from plone.directives import form
-#from hejasverige.api import HejaSverigeApiMessageFactory as _
 from plone import api
 
-# Add ListMerchants view
-# 
 
 class ListUsersView(grok.View):
+
     """ Lists all available users and corresponding
     """
+
     grok.context(ISiteRoot)
     grok.name('list-users')
     grok.require('hejasverige.ApiView')  # this is the security declaration
@@ -26,32 +20,49 @@ class ListUsersView(grok.View):
         group_list = []
         for group in groups:
             group_record = {'groupid': str(group),
-                            'name': group.getProperty('title'),
-                            }
+                            'name': group.getProperty('title')}
             if group.getProperty('is_association'):
                 group_list.append(group_record)
         return group_list
 
     def create_user_record(self, user, group_list):
-        user_record = {'username': str(user),
-                       'email': user.getProperty('email'),
-                       'fullname': user.getProperty('fullname'),
-                       'groups': group_list, }
+        user_record = {
+                        'username': str(user),
+                        'email': user.getProperty('email'),
+                        'fullname': user.getProperty('fullname'),
+                        'personal_id': user.getProperty('personal_id'),
+                        'groups': group_list,
+                        }
         return user_record
 
     def render(self):
         # Prepare response
         userid = self.request.form.get('userid', '')
+        personalid = self.request.form.get('personalid', '')
         data = []
 
         if userid != '':
             user = api.user.get(username=userid)
             if user is None:
-                data.append({'Error': 'No user with id ' + userid + ' available', 'ErrorId': '4'})
+                data.append({'Error': 'No user with id ' + userid
+                            + ' available', 'ErrorId': '4'})
             else:
                 group_list = self.list_user_groups(user)
                 user_record = self.create_user_record(user, group_list)
                 data.append(user_record)
+        elif personalid != '':
+
+            # # might be unefficient. Possibly filter better.
+            users = api.user.get_users()
+            for user in users:
+                if personalid == user.getProperty('personal_id'):
+                    group_list = self.list_user_groups(user)
+                    user_record = self.create_user_record(user, group_list)
+                    data.append(user_record)
+
+            if not data:
+                data.append({'Error': 'No user with personal_id ' + personalid
+                            + ' available', 'ErrorId': '5'})
         else:
             users = api.user.get_users()
             for user in users:
@@ -64,8 +75,10 @@ class ListUsersView(grok.View):
 
 
 class ListAssociasionsView(grok.View):
+
     """ Lists all available associasions
     """
+
     grok.context(ISiteRoot)
     grok.name('list-associasions')
     grok.require('hejasverige.ApiView')
@@ -75,7 +88,8 @@ class ListAssociasionsView(grok.View):
         groups = api.group.get_groups()
         for group in groups:
             if group.getProperty('is_association'):
-                group_record = {'groupId': str(group), 'name': group.getProperty('title')}
+                group_record = {'groupId': str(group),
+                                'name': group.getProperty('title')}
                 data.append(group_record)
 
         self.request.response.setHeader('Content-Type', 'application/json')
@@ -83,6 +97,7 @@ class ListAssociasionsView(grok.View):
 
 
 class ListUsersByAssociasion(grok.View):
+
     """ Lists all users in a specific Assiciasion
         http://<host>:<port>/<site>/@@list-users-by-associasion?id=<id>
 
@@ -103,22 +118,31 @@ class ListUsersByAssociasion(grok.View):
             if group is not None and group.getProperty('is_association'):
                 users = api.user.get_users(groupname=group_name)
                 for user in users:
-                    user_record = {'username': str(user),
-                                   'email': user.getProperty('email'),
-                                   'fullname': user.getProperty('fullname'), }
+                    user_record = {
+                        'username': str(user),
+                        'email': user.getProperty('email'),
+                        'fullname': user.getProperty('fullname'),
+                        'personal_id': user.getProperty('personal_id'),
+                        }
                     data.append(user_record)
             else:
-                data.append({'Error': 'No associasion with id ' + group_name + ' available', 'ErrorId': '1'})
+                data.append({'Error': 'No associasion with id ' + group_name
+                            + ' available', 'ErrorId': '1'})
         except KeyError:
-            data.append({'Error': 'No associasion id provided. Syntax: http://'+ self.request["SERVER_URL"] + self.request["PATH_INFO"] + '?id=<id>', 'ErrorId': '2'})
+            data.append({'Error': 'No associasion id provided. Syntax: http://'
+                         + self.request['SERVER_URL']
+                        + self.request['PATH_INFO'] + '?id=<id>',
+                        'ErrorId': '2'})
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
 
 
 class CheckUserAccountView(grok.View):
+
     """ Checks if an amount can be reserved from a specific user CheckUserAccount
     """
+
     grok.context(ISiteRoot)
     grok.name('check-user-account')
     grok.require('hejasverige.ApiView')
@@ -154,23 +178,23 @@ class CheckUserAccountView(grok.View):
         mburl = settings.megabank_url
         mbuser = settings.megabank_user
         mbpassword = settings.megabank_password
-        
 
         import logging
-        logger = logging.getLogger("@@check-user-account")
+        logger = logging.getLogger('@@check-user-account')
         logger.info('Check user account (' + str(user) + ')')
         logger.info('Calling MegaBank')
         logger.info('User: ' + mbuser)
         logger.info('Password: ' + mbpassword)
         logger.info('Url: ' + mburl)
 
-        #data = json.dumps({u'user': str(user), u'amount': amount})
+        # data = json.dumps({u'user': str(user), u'amount': amount})
 
         auth = HTTPBasicAuth(mbuser, mbpassword)
 
-        # http://swedwise.no-ip.org/BankAPI/BankAPI.BankService.svc/accounts/check/7810095039/?amount=100.00       
-        #r = requests.post(mburl + '/accounts/check/7810095039/?amount=' + amount, data=data, auth=auth)
-        r = requests.get(mburl + '/accounts/check/' + str(user) + '/?amount=' + amount, auth=auth)
+        # http://swedwise.no-ip.org/BankAPI/BankAPI.BankService.svc/accounts/check/7810095039/?amount=100.00
+        # r = requests.post(mburl + '/accounts/check/7810095039/?amount=' + amount, data=data, auth=auth)
+        r = requests.get(mburl + '/accounts/check/' + str(user) + '/?amount='
+                         + amount, auth=auth)
 
         logger.info('Response: ' + r.text)
 
@@ -182,35 +206,40 @@ class CheckUserAccountView(grok.View):
     def render(self):
         data = []
         import logging
-        logger = logging.getLogger("@@check-user-account")
-        logger.info("Rendering check-user-account")
+        logger = logging.getLogger('@@check-user-account')
+        logger.info('Rendering check-user-account')
 
         try:
             user_personal_code = self.request['pc']
             amount = self.request['amount']
             users = api.user.get_users()
             user_found = False
-            logger.info("Found pc: " + user_personal_code)
-            logger.info("Found amount: " + amount)
+            logger.info('Found pc: ' + user_personal_code)
+            logger.info('Found amount: ' + amount)
 
             for user in users:
-                #if user.getProperty('personal_code') is user_personal_code:
-                logger.info("Investigating user: " + str(user))
+                # if user.getProperty('personal_code') is user_personal_code:
+                logger.info('Investigating user: ' + str(user))
                 if str(user) == user_personal_code:
-                    logger.info("Found user: " + str(user))
-                    data.append({'Result': self.CheckUserAccount(user, amount)})
+                    logger.info('Found user: ' + str(user))
+                    data.append({'Result': self.CheckUserAccount(user,
+                                amount)})
                     user_found = True
-            
+
             if not user_found:
-                data.append({'Error': 'No user with personal code ' + user_personal_code + ' found', 'ErrorId': '3'})
+                data.append({'Error': 'No user with personal code '
+                            + user_personal_code + ' found', 'ErrorId': '3'})
         except KeyError:
-            data.append({'Error': 'No personal code provided. Syntax: http://'+ self.request["SERVER_URL"] + self.request["PATH_INFO"] + '?pc=<personal code>', 'ErrorId': '3'})
+            data.append({'Error': 'No personal code provided. Syntax: http://'
+                        + self.request['SERVER_URL'] + self.request['PATH_INFO'
+                        ] + '?pc=<personal code>', 'ErrorId': '3'})
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
 
 
 class TestView(grok.View):
+
     grok.context(ISiteRoot)
     grok.name('test-view')
     grok.require('zope2.View')
@@ -221,6 +250,8 @@ class TestView(grok.View):
             return 'Is in and contains: ' + hej
         else:
             return self.request.items()
+
+
     #    if self.request['method'] == 'GET' and 'hej' in self.request['QUERY_STRING']:
     #        if self.request['hej'] is not None and self.request['hej'] != '':
     #            return self.request["hej"]
