@@ -51,6 +51,20 @@ class ListMerchantsView(grok.View):
                 depth=1),
                 'sort_on': 'sortable_title'})]
 
+    @memoize
+    def merchant_has_pos(self, merchant, pos_id):
+        catalog = getToolByName(self.context, 'portal_catalog')
+        merchant_pos = [pos.posId for pos in
+                             catalog({'object_provides': IPos.__identifier__,
+                             'path': dict(query=merchant.getPath(),
+                             depth=2),})]
+
+        if pos_id in merchant_pos:
+            return True
+
+        return False
+
+
     def create_store_record(self, store, pos):
         store_record = {'name': store.Title,
                         'store_id': store.storeId,
@@ -70,6 +84,7 @@ class ListMerchantsView(grok.View):
     def render(self):
         # Prepare response
         corporate_id = self.request.form.get('corporate_id', '')
+        pos_id = self.request.form.get('pos_id', '')
         data = []
 
         merchants = self.get_merchants()
@@ -80,6 +95,12 @@ class ListMerchantsView(grok.View):
                     merchant_record = self.create_merchant_record(merchant,
                                                                   stores)
                     data.append(merchant_record)
+            elif pos_id:
+                if self.merchant_has_pos(merchant, pos_id):
+                    stores = self.list_stores(merchant)
+                    merchant_record = self.create_merchant_record(merchant,
+                                                                  stores)
+                    data.append(merchant_record)                    
             else:
                 stores = self.list_stores(merchant)
                 merchant_record = self.create_merchant_record(merchant, stores)
