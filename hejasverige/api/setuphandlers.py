@@ -21,11 +21,15 @@ def addProperty(tool, id, value, type, logger=None):
 
 #   Move to hejasverige.content
 def addGroupProperties(portal, logger=None):
+    """ Adds a group property
+        Group properties can be found ad
+        http://localhost:8080/plone/portal_groupdata/manage_addProperty
+    """
     if logger:
         logger.info("Adding HejaSverige Group Properties")
     portal_groupdata = getToolByName(portal, 'portal_groupdata')
     addProperty(portal_groupdata, 'orgnr', '', 'string', logger)
-    addProperty(portal_groupdata, 'is_associasion', '', 'boolean', logger)
+    addProperty(portal_groupdata, 'is_association', '', 'boolean', logger)
 
 
 def importVarious(context):

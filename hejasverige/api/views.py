@@ -20,7 +20,9 @@ class ListUsersView(grok.View):
         group_list = []
         for group in groups:
             group_record = {'groupid': str(group),
-                            'name': group.getProperty('title')}
+                            'name': group.getProperty('title'),
+                            'orgnr': group.getProperty('orgnr'),
+                            }
             if group.getProperty('is_association'):
                 group_list.append(group_record)
         return group_list
@@ -80,23 +82,28 @@ class ListAssociasionsView(grok.View):
     """
 
     grok.context(ISiteRoot)
-    grok.name('list-associasions')
+    grok.name('list-associations')
     grok.require('hejasverige.ApiView')
 
     def render(self):
         data = []
         groups = api.group.get_groups()
+        #import pdb
+        #pdb.set_trace()
         for group in groups:
             if group.getProperty('is_association'):
                 group_record = {'groupId': str(group),
-                                'name': group.getProperty('title')}
+                                'name': group.getProperty('title'),
+                                'orgnr': group.getProperty('orgnr'),
+                                #'is_association': group.getProperty('is_association'),
+                                }
                 data.append(group_record)
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
 
 
-class ListUsersByAssociasion(grok.View):
+class ListUsersByAssociation(grok.View):
 
     """ Lists all users in a specific Assiciasion
         http://<host>:<port>/<site>/@@list-users-by-associasion?id=<id>
@@ -105,7 +112,7 @@ class ListUsersByAssociasion(grok.View):
     """
 
     grok.context(ISiteRoot)
-    grok.name('list-users-by-associasion')
+    grok.name('list-users-by-association')
     grok.require('hejasverige.ApiView')
 
     def render(self):
@@ -126,10 +133,10 @@ class ListUsersByAssociasion(grok.View):
                         }
                     data.append(user_record)
             else:
-                data.append({'Error': 'No associasion with id ' + group_name
+                data.append({'Error': 'No association with id ' + group_name
                             + ' available', 'ErrorId': '1'})
         except KeyError:
-            data.append({'Error': 'No associasion id provided. Syntax: http://'
+            data.append({'Error': 'No association id provided. Syntax: http://'
                          + self.request['SERVER_URL']
                         + self.request['PATH_INFO'] + '?id=<id>',
                         'ErrorId': '2'})
