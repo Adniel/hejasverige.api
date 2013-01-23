@@ -73,11 +73,27 @@ class ListMerchantsView(grok.View):
         return store_record
 
     def create_merchant_record(self, merchant, stores):
+
+        if not merchant.discount:
+            discount = '0'
+        else:
+            discount = merchant.discount
+
+        if not merchant.supplierId:
+            supplierId = ''
+        else:
+            supplierId = merchant.supplierId
+
+        if not merchant.customerId:
+            customerId = ''
+        else:
+            customerId = merchant.customerId
+
         merchant_record = {'name': merchant.Title,
                            'corporate_id': merchant.corporateId,
-                           'supplier_id': merchant.supplierId,
-                           'customer_id': merchant.customerId,
-                           'discount': merchant.discount,
+                           'supplier_id': supplierId,
+                           'customer_id': customerId,
+                           'discount': discount,
                            'stores': stores,
                            }
         return merchant_record
