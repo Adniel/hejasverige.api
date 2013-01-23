@@ -77,6 +77,7 @@ class ListMerchantsView(grok.View):
                            'corporate_id': merchant.corporateId,
                            'supplier_id': merchant.supplierId,
                            'customer_id': merchant.customerId,
+                           'discount': merchant.discount,
                            'stores': stores,
                            }
         return merchant_record
