@@ -33,6 +33,7 @@ class ListUsersView(grok.View):
                         'email': user.getProperty('email'),
                         'fullname': user.getProperty('fullname'),
                         'personal_id': user.getProperty('personal_id'),
+                        'kollkoll': user.getProperty('kollkoll'),
                         'groups': group_list,
                         }
         return user_record
@@ -41,6 +42,7 @@ class ListUsersView(grok.View):
         # Prepare response
         userid = self.request.form.get('userid', '')
         personalid = self.request.form.get('personalid', '')
+
         data = []
 
         if userid != '':
@@ -52,6 +54,7 @@ class ListUsersView(grok.View):
                 group_list = self.list_user_groups(user)
                 user_record = self.create_user_record(user, group_list)
                 data.append(user_record)
+
         elif personalid != '':
 
             # # might be unefficient. Possibly filter better.
@@ -78,7 +81,7 @@ class ListUsersView(grok.View):
 
 class ListAssociasionsView(grok.View):
 
-    """ Lists all available associasions
+    """ Lists all available associations
     """
 
     grok.context(ISiteRoot)
