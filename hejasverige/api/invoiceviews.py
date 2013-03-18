@@ -32,7 +32,7 @@ class CreateInvoiceView(grok.View):
 
     grok.context(ISiteRoot)
     grok.name('create-invoice')
-    grok.require('zope2.View')
+    grok.require('hejasverige.ApiView')
 
     def __init__(self, context, request):
         self.context = context
@@ -42,32 +42,74 @@ class CreateInvoiceView(grok.View):
         schema = {
             "type": "object",
             "properties": {
-                "invoiceDescription": {"type": "string"},
+                "invoiceNo": {
+                    "type": "string",
+                    "required": True
+                },
+
+                "invoiceDescription": {
+                    "type": "string",
+                    "description": ""
+                },
                 "invoiceReferences": {
                     "type": "object",
                     "properties": {
-                        "userName": {"type": "string"},
-                        "displayName": {"type": "string"},
+                        "userName": {
+                            "type": "string",
+                            "required": True
+                        },
+                        "displayName": {
+                            "type": "string"
+                        },
                     }
                 },
                 "invoiceDetails": {
-                    "type": "object",
+                    "type": "array",
                     "properties": {
-                        "amount": {"type": "string"},
-                        "unitprice": {"type": "string"},
-                        "total": {"type": "string"},
-                        "taxRate": {"type": "string"},
-                        "description": {"type": "string"},
+                        "amount": {
+                            "type": "string"
+                        },
+                        "unitprice": {
+                            "type": "string"
+                        },
+                        "total": {
+                            "type": "string"
+                        },
+                        "taxRate": {
+                            "type": "string"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
                     }
                 },
-                "senderId": {"type": "string"},
-                "senderName": {"type": "string"},
-                "invoiceDate": {"type": "string"},
-                "invoicePayCondition": {"type": "string"},
-                "invoiceExpireDate": {"type": "string"},
-                "invoiceTotalCost": {"type": "string"},
-                "invoiceCurrency": {"type": "string"},
-                "invoiceTotalVat": {"type": "string"}
+                "senderId": {
+                    "type": "string",
+                    "required": True
+                },
+                "senderName": {
+                    "type": "string"
+                },
+                "invoiceDate": {
+                    "type": "string"
+                },
+                "invoicePayCondition": {
+                    "type": "string"
+                },
+                "invoiceExpireDate": {
+                    "type": "string",
+                    "required": True                    
+                },
+                "invoiceTotalCost": {
+                    "type": "string",
+                    "required": True
+                },
+                "invoiceCurrency": {
+                    "type": "string"
+                },
+                "invoiceTotalVat": {
+                    "type": "string"
+                }
             },
         }
 
@@ -231,9 +273,11 @@ class CreateInvoiceView(grok.View):
 
                     invoice.invoiceExpireDate = datetime.strptime(invoice.invoiceExpireDate, '%Y-%m-%d')
                     invoice.invoiceDate = datetime.strptime(invoice.invoiceDate, '%Y-%m-%d')
+                    #import pdb; pdb.set_trace()
 
                     content = createContent(portal_type="hejasverige.Invoice",
                                             title=invoice.title,
+                                            description=invoice.invoiceDescription,
                                             invoiceNo=invoice.invoiceNo,
                                             invoiceSender=invoice.senderId,
                                             invoiceSenderName=invoice.senderName,
@@ -244,7 +288,7 @@ class CreateInvoiceView(grok.View):
                                             invoiceExpireDate=invoice.invoiceExpireDate,
                                             invoiceCurrency=invoice.invoiceCurrency,
                                             invoiceTotalVat=invoice.invoiceTotalVat,
-                                            invoiceTotalAmount=invoice.invoiceTotalCost,
+                                            invoiceTotalAmount=invoice.invoiceTotalCost
                                             )
 
                     # Get the field containing data
@@ -282,4 +326,5 @@ class CreateInvoiceView(grok.View):
 
             data = "ID=" + item.id
             self.request.response.setStatus(201, "")
+            #import pdb; pdb.set_trace()
             return data
