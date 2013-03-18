@@ -51,7 +51,7 @@ class CreateInvoiceView(grok.View):
                     "type": "string",
                     "description": ""
                 },
-                "invoiceReferences": {
+                "invoiceReference": {
                     "type": "object",
                     "properties": {
                         "userName": {
@@ -262,14 +262,14 @@ class CreateInvoiceView(grok.View):
 
                     invoice = dotdictify(objfields)
                     invoice.title = invoice.invoiceNo
-                    invoiceReferences = invoice.invoiceReferences
 
+                    #invoiceReferences = invoice.invoiceReferences
                     #use the first reference as recipient
-                    objfields = invoiceReferences[0]
+                    #objfields = invoiceReferences[0]
 
-                    invoiceReference = dotdictify(objfields)
-                    invoice.invoiceRecipient = invoiceReference.userName
-                    invoice.invoiceRecipientName = invoiceReference.displayName
+                    #invoiceReference = dotdictify(invoice.invoiceReference)
+                    invoice.invoiceRecipient = invoice.invoiceReference.userName
+                    invoice.invoiceRecipientName = invoice.invoiceReference.displayName
 
                     invoice.invoiceExpireDate = datetime.strptime(invoice.invoiceExpireDate, '%Y-%m-%d')
                     invoice.invoiceDate = datetime.strptime(invoice.invoiceDate, '%Y-%m-%d')
