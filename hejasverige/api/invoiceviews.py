@@ -146,7 +146,7 @@ class CreateInvoiceView(grok.View):
             return data
         else:
             payload = self.request.get('BODY')
-            print payload
+            print 'Payload: ' + payload
 
             # split up payload
             '''
