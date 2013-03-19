@@ -15,7 +15,7 @@ from plone.namedfile.interfaces import INamedImageField
 from plone.rfc822.interfaces import IPrimaryField
 from Products.CMFCore.interfaces import ISiteRoot
 from zope.schema import getFieldsInOrder
-
+from Products.CMFCore.utils import getToolByName
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # TODO:
@@ -137,6 +137,23 @@ class CreateInvoiceView(grok.View):
             return 0
         except ValueError, ex:
             return ex
+
+    def set_owner(self, obj):        
+        membership_tool = getToolByName(self, 'portal_membership')
+        members = [member for member in membership_tool.listMembers()
+            if member.getProperty('personal_id')==obj.invoiceRecipient]
+        
+        # import pdb; pdb.set_trace()
+        
+        if members:
+            obj.changeOwnership(members[0].getUser(), recursive=False)
+            obj.manage_setLocalRoles(str(members[0].getUser()), ["Owner",])
+            obj.reindexObjectSecurity()
+        else:
+            # no user with provided personal id found property not changed
+            pass
+        
+        return
 
     def render(self):
 
@@ -315,6 +332,11 @@ class CreateInvoiceView(grok.View):
                     folder = self.context['invoices']
 
                     item = addContentToContainer(container=folder, object=content, checkConstraints=False)
+
+                    # set the recipient to owner of the invoice. Otherwise it will not show up for the recipient in MyAccount View.
+                    self.set_owner(item)
+
+                    #content.reindexObject()
                     #import pdb
                     #pdb.set_trace()
 
