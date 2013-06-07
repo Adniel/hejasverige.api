@@ -267,7 +267,7 @@ class CreateInvoiceView(grok.View):
                 #pdb.set_trace()
                 objfields = json.loads(invoicedata)
             except Exception, ex:
-                data.append({'error': 'Error creating json object from invoice-data part: ' + ex})
+                data.append({'error': 'Error creating json object from invoice-data part: ' + str(ex)})
                 self.request.response.setStatus(400, "")
                 self.request.response.setHeader('Content-Type', 'application/json')
                 return json.dumps(data)
@@ -351,7 +351,7 @@ class CreateInvoiceView(grok.View):
 
                     print item.id
                 except Exception, ex:
-                    data.append({'error': 'Could not create invoice object ' + ex})
+                    data.append({'error': 'Could not create invoice object ' + str(ex)})
                     self.request.response.setStatus(500, "")
                     self.request.response.setHeader('Content-Type', 'application/json')
                     return json.dumps(data)
