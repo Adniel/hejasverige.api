@@ -2,6 +2,7 @@
 
 import json
 import StringIO
+import logging
 
 from datetime import datetime
 from five import grok
@@ -24,6 +25,7 @@ from Products.CMFCore.utils import getToolByName
 #   - set grok.require to correct permission (some api permission)
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
 class CreateInvoiceView(grok.View):
 
@@ -98,7 +100,7 @@ class CreateInvoiceView(grok.View):
                 },
                 "invoiceExpireDate": {
                     "type": "string",
-                    "required": True                    
+                    "required": True
                 },
                 "invoiceTotalCost": {
                     "type": "string",
@@ -138,21 +140,22 @@ class CreateInvoiceView(grok.View):
         except ValueError, ex:
             return ex
 
-    def set_owner(self, obj):        
+    def set_owner(self, obj):
         membership_tool = getToolByName(self, 'portal_membership')
         members = [member for member in membership_tool.listMembers()
-            if member.getProperty('personal_id')==obj.invoiceRecipient]
-        
+                   if member.getProperty('personal_id') == obj.invoiceRecipient
+                   ]
+
         # import pdb; pdb.set_trace()
-        
+
         if members:
             obj.changeOwnership(members[0].getUser(), recursive=False)
-            obj.manage_setLocalRoles(str(members[0].getUser()), ["Owner",])
+            obj.manage_setLocalRoles(str(members[0].getUser()), ["Owner", ])
             obj.reindexObjectSecurity()
         else:
             # no user with provided personal id found property not changed
             pass
-        
+
         return
 
     def render(self):
@@ -160,10 +163,14 @@ class CreateInvoiceView(grok.View):
         if self.request['QUERY_STRING'] == 'schema':
             data = self.get_schema()
             self.request.response.setStatus(200, "")
+            self.request.response.setHeader('Content-Type', 'application/json')
             return data
         else:
             payload = self.request.get('BODY')
             print 'Payload: ' + payload
+
+            # init response
+            data = []
 
             # split up payload
             '''
@@ -250,7 +257,8 @@ class CreateInvoiceView(grok.View):
                 if not invoicedata:
                     #if there is no invoice data
                     #return
-                    data = 'No or empty invoice-data part received'
+                    data.append({'error': 'No or empty invoice-data part received'})
+                    self.request.response.setHeader('Content-Type', 'application/json')
                     self.request.response.setStatus(422, "")
                     return data
 
@@ -259,9 +267,10 @@ class CreateInvoiceView(grok.View):
                 #pdb.set_trace()
                 objfields = json.loads(invoicedata)
             except Exception, ex:
-                data = 'Error creating json object from invoice-data part', ex
+                data.append({'error': 'Error creating json object from invoice-data part: ' + ex})
                 self.request.response.setStatus(400, "")
-                return data
+                self.request.response.setHeader('Content-Type', 'application/json')
+                return json.dumps(data)
             else:
                 try:
                     #invoiceNo
@@ -342,12 +351,113 @@ class CreateInvoiceView(grok.View):
 
                     print item.id
                 except Exception, ex:
-                    data = 'Could not create invoice object', ex
+                    data.append({'error': 'Could not create invoice object ' + ex})
                     self.request.response.setStatus(500, "")
-                    return data
+                    self.request.response.setHeader('Content-Type', 'application/json')
+                    return json.dumps(data)
 
-
-            data = "ID=" + item.id
+            data.append({'storageid': item.id})
             self.request.response.setStatus(201, "")
             #import pdb; pdb.set_trace()
-            return data
+            self.request.response.setHeader('Content-Type', 'application/json')
+            return json.dumps(data)
+
+
+class GetInvoicesView(grok.View):
+    """ gets invoices for an organisation
+    """
+
+    grok.context(ISiteRoot)
+    grok.name('get-invoices')
+    grok.require('hejasverige.ApiView')
+
+    def megabankisinstalled(self):
+        try:
+            from hejasverige.megabank.bank import Bank 
+            print 'Megabank is installed'
+            return True
+        except:
+            print 'Megabank is not installed'
+            return False
+
+    def render(self):
+        logger = logging.getLogger("@@get-invoices")
+        # init response
+        data = []
+
+        # verify that Megabank is present, otherwise inform so
+        if not self.megabankisinstalled:
+            data.append({'error': 'There is no bank available'})
+            self.request.response.setStatus(500, "")
+            self.request.response.setHeader('Content-Type', 'application/json')
+            return json.dumps(data)
+        else:
+            # def getInvoices(self, personalid, invoiceid=None, startdate=None, enddate=None, status=None):
+            orgnr = self.request.form.get('orgnr', '')
+            invoiceid = self.request.form.get('invoiceid', '')
+            startdate = self.request.form.get('startdate', '')
+            enddate = self.request.form.get('enddate', '')
+            status = self.request.form.get('status', 0)
+
+            print self.request.form.get('outgoing', 0)
+
+            if self.request.form.get('outgoing', '0') == '0':
+                outgoing = 'false'
+            else:
+                outgoing = 'true'
+
+            # Status
+            # 0 = pending
+            # 1 = payed
+            # 2 = rejected
+
+            
+            # Exceptions are thouwn from the bank, that uses requests api
+            # Bank should implement its own exception handling and throw them instead.
+            # for now, we just read the exceptions from requests.
+            from requests.exceptions import ConnectionError
+            from requests.exceptions import Timeout
+
+            # Get Invoices
+            from hejasverige.megabank.bank import Bank
+            try:
+                bank = Bank()
+            except Exception, ex:
+                logger.info("Connection Error:", ex)
+                data.append({'error': 'Connection Error. Could not connect to the bank: ' + str(ex)})
+                self.request.response.setStatus(504, "")
+                self.request.response.setHeader('Content-Type', 'application/json')
+                return json.dumps(data)
+            else:
+                try:
+                    data = bank.getInvoices(personalid=orgnr,
+                                           invoiceid=invoiceid,
+                                           startdate=startdate,
+                                           enddate=enddate,
+                                           status=status,
+                                           outgoing=outgoing)
+
+                except ConnectionError, ex:
+                    logger.info("Connection Error")
+                    data.append({'error': 'Connection Error. Could not connect to the bank: ' + str(ex)})
+                    self.request.response.setStatus(504, "")
+                    self.request.response.setHeader('Content-Type', 'application/json')
+                    return json.dumps(data)
+                except Timeout, ex:
+                    logger.info("Timeout")
+                    data.append({'error': 'Timeout. Could not connect to the bank: ' + str(ex)})
+                    self.request.response.setStatus(504, "")
+                    self.request.response.setHeader('Content-Type', 'application/json')
+                    return json.dumps(data)
+
+                if not data:
+                    data = []
+
+                #import pdb; pdb.set_trace()
+
+                self.request.response.setHeader('Content-Type', 'application/json')
+                return data
+
+#class GetInvoiceDetailsView(grok.View):
+#    """ Shows details for a specific invoice
+#    """

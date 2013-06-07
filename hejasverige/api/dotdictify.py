@@ -26,7 +26,8 @@ class dotdictify(dict):
         myKey, restOfKey = key.split('.', 1)
         target = dict.__getitem__(self, myKey)
         if not isinstance(target, dotdictify):
-            raise KeyError, 'cannot get "%s" in "%s" (%s)' % (restOfKey, myKey, repr(target))
+            return None
+            #raise KeyError, 'cannot get "%s" in "%s" (%s)' % (restOfKey, myKey, repr(target))
         return target[restOfKey]
 
     def __contains__(self, key):

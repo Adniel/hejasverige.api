@@ -4,6 +4,154 @@ from Products.CMFCore.interfaces import ISiteRoot
 from five import grok
 import json
 from plone import api
+from Products.CMFCore.utils import getToolByName
+from plone.app.uuid.utils import uuidToObject
+from hejasverige.content.person import IRelation, IPerson
+
+
+class ListUsersView2(grok.View):
+
+    """ Lists all available users and corresponding
+    """
+
+    grok.context(ISiteRoot)
+    grok.name('list-users-2')
+    grok.require('hejasverige.ApiView')  # this is the security declaration
+
+    def get_clubs_from_relations(self, path):
+        catalog = getToolByName(self.context, 'portal_catalog')
+
+        clubs = [dict(clubobj=uuidToObject(relation.getObject().foreign_id),
+                 relation=relation)
+                 for relation in
+                 catalog({'object_provides': IRelation.__identifier__,
+                 'path': dict(query=path,),
+                 'sort_on': 'sortable_title'})]
+
+        clubs = [x for x in clubs if x]
+
+        return clubs
+
+    def list_user_clubs(self, user):
+        club_list = []
+        # find all clubs for specified user
+        # should use field data from brain instead of from the object
+        #import pdb; pdb.set_trace()
+
+        #mship = getToolByName(self.context, 'portal_membership')
+        portal_url_tool = getToolByName(self, "portal_url")
+        portal = portal_url_tool.getPortalObject()
+        #portal_url = portal.portal_url()
+        portal_path = '/'.join(portal.getPhysicalPath())
+        club_path = '/'.join((portal_path, 'Members', str(user), 'mina-foreningar'))
+        clubs = self.get_clubs_from_relations(club_path)
+
+        #catalog = getToolByName(self.context, 'portal_catalog')
+
+        #clubs = [dict(clubobj=uuidToObject(relation.getObject().foreign_id),
+        #        relation=relation)
+        #        for relation in
+        #        catalog({'object_provides': IRelation.__identifier__,
+        #        'path': dict(query=club_path,),
+        #        'sort_on': 'sortable_title'})]
+
+        #clubs = [x for x in clubs if x]
+        for club in clubs:
+            club_list.append(dict(groupid=club.get('clubobj').clubId, name=club.get('clubobj').title, orgnr=club.get('clubobj').VatNo))
+
+        return club_list
+
+    def create_user_record(self, user, group_list):
+        user_record = {
+                       'username': str(user),
+                       'email': user.getProperty('email'),
+                       'fullname': user.getProperty('fullname'),
+                       'personal_id': user.getProperty('personal_id'),
+                       'kollkoll': user.getProperty('kollkoll'),
+                       'groups': group_list, }
+        return user_record
+
+    def merge_lists(l1, l2, key):
+        merged = {}
+        for item in l1 + l2:
+            if item[key] in merged:
+                merged[item[key]].update(item)
+            else:
+                merged[item[key]] = item
+        return [val for (_, val) in merged.items()]
+
+    #@memoize
+    def persons(self):
+        """Get all persons (not users, but persons connected with users).
+        """
+
+        catalog = getToolByName(self.context, 'portal_catalog')
+
+        retu = [dict(name=person.Title,
+               personal_id=person.personal_id) for person in 
+               catalog({'object_provides': IPerson.__identifier__,
+               'sort_on': 'sortable_title'})]
+
+        # remove persons without personal id
+        retu = [x for x in retu if x['personal_id']]
+
+        # merge persons with same personal id
+        # TODO: merge clubs in each merged person
+        merged = {}
+        for person in retu:
+            if person.get('personal_id') in merged:
+                merged[person.get('personal_id')].update(person)
+            else:
+                merged[person.get('personal_id')] = person
+        return [val for (_, val) in merged.items()]
+
+    def render(self):
+        # Prepare response
+        userid = self.request.form.get('userid', '')
+        personalid = self.request.form.get('personalid', '')
+
+        data = []
+
+        # get users
+        if userid != '':
+            user = api.user.get(username=userid)
+            if user is None:
+                data.append({'Error': 'No user with id ' + userid
+                            + ' available', 'ErrorId': '4'})
+            else:
+                group_list = self.list_user_clubs(user)
+                user_record = self.create_user_record(user, group_list)
+                data.append(user_record)
+
+        elif personalid != '':
+
+            # # might be unefficient. Possibly filter better.
+            users = api.user.get_users()
+            for user in users:
+                if personalid == user.getProperty('personal_id'):
+                    group_list = self.list_user_clubs(user)
+                    user_record = self.create_user_record(user, group_list)
+                    data.append(user_record)
+
+            if not data:
+                data.append({'Error': 'No user with personal_id ' + personalid
+                            + ' available', 'ErrorId': '5'})
+        else:
+            #import pdb; pdb.set_trace()
+            users = api.user.get_users()
+            for user in users:
+                group_list = self.list_user_clubs(user)
+                user_record = self.create_user_record(user, group_list)
+                data.append(user_record)
+
+        # get persons
+        persons = self.persons()
+        for person in persons:
+                person['groups'] = [x for x in self.get_clubs_from_relations()]
+                data.append(person)
+
+        self.request.response.setHeader('Content-Type', 'application/json')
+        return json.dumps(data)
 
 
 class ListUsersView(grok.View):
