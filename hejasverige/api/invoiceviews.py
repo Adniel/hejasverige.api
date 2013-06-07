@@ -423,7 +423,7 @@ class GetInvoicesView(grok.View):
             try:
                 bank = Bank()
             except Exception, ex:
-                logger.info("Connection Error:", ex)
+                logger.info("Connection Error while creating bank")
                 data.append({'error': 'Connection Error. Could not connect to the bank: ' + str(ex)})
                 self.request.response.setStatus(504, "")
                 self.request.response.setHeader('Content-Type', 'application/json')
