@@ -8,6 +8,13 @@ from hejasverige.content.store import IStore
 from hejasverige.content.pos import IPos
 from Products.CMFCore.utils import getToolByName
 from plone.memoize.instance import memoize
+import re
+
+@memoize
+def get_merchants(context):
+    catalog = getToolByName(context.context, 'portal_catalog')
+    return catalog({'object_provides': IMerchant.__identifier__,
+                    'sort_on': 'sortable_title'})
 
 
 class ListMerchantsView(grok.View):
@@ -122,6 +129,44 @@ class ListMerchantsView(grok.View):
                 stores = self.list_stores(merchant)
                 merchant_record = self.create_merchant_record(merchant, stores)
                 data.append(merchant_record)
+
+        self.request.response.setHeader('Content-Type', 'application/json')
+        return json.dumps(data)
+
+# Skicka in transaktionstext - returnera handlare
+class GetMerchantByDescription(grok.View):
+
+    """ Returns the first matching merchant. Be aware that several expressions 
+        could match, but only the firt found is returned. (That must change. 
+        returning a list of merchants for future change.)
+    """
+
+    grok.context(ISiteRoot)
+    grok.name('get-merchant-by-description')
+    grok.require('hejasverige.ApiView')  # this is the security declaration
+
+    def render(self):
+        description = self.request.form.get('description', '')
+        data = []
+        if description:
+            merchants = get_merchants(self)
+            #import pdb; pdb.set_trace()
+            for merchant in merchants:
+                transaction_descriptions = merchant.transaction_description
+                for transaction_description in transaction_descriptions:
+                    tdre = re.compile(transaction_description)
+                    match = tdre.match(description)
+                    if match:
+                        merchant_obj = merchant.getObject()
+
+                        data.append({'name': merchant_obj.title,
+                                     'corporate_id': merchant_obj.corporateId,
+                                     'supplier_id': merchant_obj.supplierId,
+                                     'customer_id': merchant_obj.customerId,
+                                     'discount': merchant_obj.discount,
+                                     'description': description,
+                                     'matching_description': transaction_description,
+                                     })
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
