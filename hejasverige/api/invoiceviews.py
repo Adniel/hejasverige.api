@@ -20,11 +20,13 @@ from Products.CMFCore.utils import getToolByName
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # TODO:
-#   - set owner and permissions on created invoice to recipient
+#   - set owner and permissions on created invoice to recipient. DONE!
 #   - validate the read json/return json schema when @@create-invoice?schema
 #   - set grok.require to correct permission (some api permission)
+#   - use python email module to handle multi-part/form
 #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+logger = logging.getLogger(__name__)
 
 
 class CreateInvoiceView(grok.View):
@@ -167,7 +169,10 @@ class CreateInvoiceView(grok.View):
             return data
         else:
             payload = self.request.get('BODY')
-            print 'Payload: ' + payload
+            if payload:
+                logger.info('Payload: %s' % str(payload));
+            else:
+                logger.warning('Empty payload received')
 
             # init response
             data = []
@@ -202,7 +207,7 @@ class CreateInvoiceView(grok.View):
 
             parts = []
             if not boundry:
-                print 'No boundry found...'
+                logger.error('No boundry found in payload: %s' % str(payload));
             else:
                 parts = payload.split('--' + boundry)
 
@@ -374,14 +379,13 @@ class GetInvoicesView(grok.View):
     def megabankisinstalled(self):
         try:
             from hejasverige.megabank.bank import Bank 
-            print 'Megabank is installed'
+            logger.info('Megabank is installed');
             return True
         except:
-            print 'Megabank is not installed'
+            logger.info('Megabank is NOT installed');
             return False
 
     def render(self):
-        logger = logging.getLogger("@@get-invoices")
         # init response
         data = []
 

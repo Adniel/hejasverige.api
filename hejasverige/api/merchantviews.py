@@ -124,7 +124,7 @@ class ListMerchantsView(grok.View):
                     stores = self.list_stores(merchant)
                     merchant_record = self.create_merchant_record(merchant,
                                                                   stores)
-                    data.append(merchant_record)                    
+                    data.append(merchant_record)
             else:
                 stores = self.list_stores(merchant)
                 merchant_record = self.create_merchant_record(merchant, stores)
@@ -152,21 +152,30 @@ class GetMerchantByDescription(grok.View):
             merchants = get_merchants(self)
             #import pdb; pdb.set_trace()
             for merchant in merchants:
-                transaction_descriptions = merchant.transaction_description
-                for transaction_description in transaction_descriptions:
-                    tdre = re.compile(transaction_description)
-                    match = tdre.match(description)
-                    if match:
-                        merchant_obj = merchant.getObject()
+                try:
+                    transaction_descriptions = merchant.transaction_description
+                except:
+                    merchant.getObject().reindexObject()
+                    try:
+                        transaction_descriptions = merchant.transaction_description
+                    except:
+                        pass
 
-                        data.append({'name': merchant_obj.title,
-                                     'corporate_id': merchant_obj.corporateId,
-                                     'supplier_id': merchant_obj.supplierId,
-                                     'customer_id': merchant_obj.customerId,
-                                     'discount': merchant_obj.discount,
-                                     'description': description,
-                                     'matching_description': transaction_description,
-                                     })
+                if transaction_descriptions:
+                    for transaction_description in transaction_descriptions:
+                        tdre = re.compile(transaction_description)
+                        match = tdre.match(description)
+                        if match:
+                            merchant_obj = merchant.getObject()
+
+                            data.append({'name': merchant_obj.title,
+                                         'corporate_id': merchant_obj.corporateId,
+                                         'supplier_id': merchant_obj.supplierId,
+                                         'customer_id': merchant_obj.customerId,
+                                         'discount': merchant_obj.discount,
+                                         'description': description,
+                                         'matching_description': transaction_description,
+                                         })
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)

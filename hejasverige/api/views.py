@@ -43,7 +43,7 @@ class ListUsersView2(grok.View):
         portal = portal_url_tool.getPortalObject()
         #portal_url = portal.portal_url()
         portal_path = '/'.join(portal.getPhysicalPath())
-        club_path = '/'.join((portal_path, 'Members', str(user), 'mina-foreningar'))
+        club_path = '/'.join((portal_path, 'Members', str(user), 'my-clubs'))
         clubs = self.get_clubs_from_relations(club_path)
 
         #catalog = getToolByName(self.context, 'portal_catalog')
