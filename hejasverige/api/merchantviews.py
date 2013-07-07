@@ -96,11 +96,18 @@ class ListMerchantsView(grok.View):
         else:
             customerId = merchant.customerId
 
+        if not merchant.transaction_description:
+            transaction_description = []
+        else:
+            transaction_description = [x.encode('base64') for x in merchant.transaction_description]
+
+
         merchant_record = {'name': merchant.Title,
                            'corporate_id': merchant.corporateId,
                            'supplier_id': supplierId,
                            'customer_id': customerId,
                            'discount': discount,
+                           'transaction_description': transaction_description,
                            'stores': stores,
                            }
         return merchant_record
