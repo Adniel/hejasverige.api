@@ -176,11 +176,35 @@ class ListUsersView(grok.View):
         return group_list
 
     def create_user_record(self, user, group_list):
+        address1 = user.getProperty('address1')
+        if type(address1).__name__ == 'object':
+            address1 = None
+
+        address2 = user.getProperty('address2')
+        if type(address2).__name__ == 'object':
+            address2 = None
+
+        address2 = user.getProperty('address2')
+        if type(address2).__name__ == 'object':
+            address2 = None
+
+        postal_code = user.getProperty('postal_code')
+        if type(postal_code).__name__ == 'object':
+            postal_code = None
+
+        city = user.getProperty('city')
+        if type(city).__name__ == 'object':
+            city = None
+
         user_record = {
                         'username': str(user),
                         'email': user.getProperty('email'),
                         'fullname': user.getProperty('fullname'),
                         'personal_id': user.getProperty('personal_id'),
+                        'address1': address1,
+                        'address2': address2,
+                        'postal_code': postal_code,
+                        'city': city,
                         'kollkoll': user.getProperty('kollkoll'),
                         'groups': group_list,
                         }
