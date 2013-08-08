@@ -168,187 +168,194 @@ class CreateInvoiceView(grok.View):
             self.request.response.setHeader('Content-Type', 'application/json')
             return data
         else:
-            payload = self.request.get('BODY')
-            if payload:
-                logger.info('Payload: %s' % str(payload));
-            else:
-                logger.warning('Empty payload received')
-
             # init response
             data = []
 
-            # split up payload
-            '''
-            Content-Type: multipart/form-data; boundary=AaB03x
-
-            --AaB03x
-            Content-Disposition: form-data; name="submit-name"
-
-            Larry
-            --AaB03x
-            Content-Disposition: form-data; name="files"; filename="file1.txt"
-            Content-Type: text/plain
-
-            ... contents of file1.txt ...
-            --AaB03x--
-            '''
-
-            filename = None
-            invoicedata = None
-            invoicefile = None
-            contenttype = None
-            transfer_encoding = None
-
-            buf = StringIO.StringIO(payload)
-
-            p=email.Parser.Parser()
-            try:
-                msg=p.parse(buf)
-                partCounter=1
-                for part in msg.walk():
-                    #import pdb; pdb.set_trace()
-                    if part.get_content_maintype()=="multipart":
-                        continue
-                    name=part.get_param("name")
-                    if not name:
-                        name=part.get_param("name", header='Content-Disposition')
-                    
-                    if name==None:
-                        name="part-%i" % partCounter
-                    partCounter+=1
-
-                    if name=='invoice-data':
-                        invoicedata = part.get_payload(decode=1)
-
-                    if name=='invoice-file':
-                        contenttype = part.get_content_type()
-                        invoicefile = part.get_payload(decode=1)
-                        filename = part.get_filename()
-                        transfer_encoding = part.get_all('Content-Transfer-Encoding')
-
-            except Exception, ex:
-                error = 'Unable to parse payload: %s' % str(ex)
-                data.append({'error': error})
-                self.request.response.setHeader('Content-Type', 'application/json')
-                self.request.response.setStatus(404, "")
-                return data
+            # Payload should not really be in body, but we'll accept that also
+            payload = self.request.get('BODY')
+            if payload:
+                logger.info('Payload in BODY: %s' % str(payload));
 
 
-            else:
+                # split up payload
+                '''
+                Content-Type: multipart/form-data; boundary=AaB03x
 
-                if invoicefile:
-                    if transfer_encoding == 'base64':
-                        import base64
-                        try:
-                            invoicefile = base64.b64decode(invoicefile)
-                            #import pdb; pdb.set_trace()
-                        except:
-                            # just try to decode if possible
-                            pass
-                else:
-                    if not invoicedata:
-                        #if there is no invoice data
-                        #return
-                        data.append({'error': 'No or empty invoice-data part received'})
-                        self.request.response.setHeader('Content-Type', 'application/json')
-                        self.request.response.setStatus(422, "")
-                        return data
+                --AaB03x
+                Content-Disposition: form-data; name="submit-name"
 
+                Larry
+                --AaB03x
+                Content-Disposition: form-data; name="files"; filename="file1.txt"
+                Content-Type: text/plain
+
+                ... contents of file1.txt ...
+                --AaB03x--
+                '''
+
+                filename = None
+                invoicedata = None
+                invoicefile = None
+                contenttype = None
+                transfer_encoding = None
+
+                buf = StringIO.StringIO(payload)
+
+                p=email.Parser.Parser()
                 try:
-                    #import pdb
-                    #pdb.set_trace()
-                    objfields = json.loads(invoicedata)
+                    msg=p.parse(buf)
+                    partCounter=1
+                    for part in msg.walk():
+                        import pdb; pdb.set_trace()
+                        if part.get_content_maintype()=="multipart":
+                            continue
+                        name=part.get_param("name")
+                        if not name:
+                            name=part.get_param("name", header='Content-Disposition')
+                        
+                        if name==None:
+                            name="part-%i" % partCounter
+                        partCounter+=1
+
+                        if name=='invoice-data':
+                            invoicedata = part.get_payload(decode=1)
+
+                        if name=='invoice-file':
+                            contenttype = part.get_content_type()
+                            invoicefile = part.get_payload(decode=1)
+                            filename = part.get_filename()
+                            transfer_encoding = part.get_all('Content-Transfer-Encoding')
+
                 except Exception, ex:
-                    data.append({'error': 'Error creating json object from invoice-data part: ' + str(ex)})
-                    self.request.response.setStatus(400, "")
+                    error = 'Unable to parse payload: %s' % str(ex)
+                    data.append({'error': error})
+                    self.request.response.setHeader('Content-Type', 'application/json')
+                    self.request.response.setStatus(404, "")
+                    return data
+            else:
+                # request was sent as a real multipart
+                logger.info('Payload not received in request BODY. Good...')
+                # import pdb;pdb.set_trace()
+                invoicedata = self.request.get('invoice-data')
+                invoicefile = self.request.get('invoice-file').readlines()[0]
+                filename = self.request.get('invoice-file').filename
+                contenttype = self.request['invoice-file'].headers['content-type']
+                transfer_encoding = None
+
+            if invoicefile:
+                if transfer_encoding == 'base64':
+                    import base64
+                    try:
+                        invoicefile = base64.b64decode(invoicefile)
+                        #import pdb; pdb.set_trace()
+                    except:
+                        # just try to decode if possible
+                        pass
+            else:
+                if not invoicedata:
+                    #if there is no invoice data
+                    #return
+                    data.append({'error': 'No or empty invoice-data part received'})
+                    self.request.response.setHeader('Content-Type', 'application/json')
+                    self.request.response.setStatus(422, "")
+                    return data
+
+            try:
+                #import pdb
+                #pdb.set_trace()
+                objfields = json.loads(invoicedata)
+            except Exception, ex:
+                data.append({'error': 'Error creating json object from invoice-data part: ' + str(ex)})
+                self.request.response.setStatus(400, "")
+                self.request.response.setHeader('Content-Type', 'application/json')
+                return json.dumps(data)
+            else:
+                try:
+                    #invoiceNo
+                    #invoiceSender
+                    #invoiceSenderName = schema.ASCIILine(title=_(u'Avsändare namn'),
+                    #invoiceRecipient = schema.ASCIILine(title=_(u'Mottagare'),
+                    #invoiceRecipientName = schema.ASCIILine(title=_(u'Mottagare namn'),
+                    #externalId = schema.ASCIILine(title=_(u'Externt Id'),
+                    #invoiceDate = schema.Date(title=_(u'Fakturadatum'),
+                    #invoicePayCondition = schema.ASCIILine(title=_(u'Betalningsvillkor'),
+                    #invoiceExpireDate = schema.Date(title=_(u'Förfallodatum'),
+                    #invoiceCurrency = schema.ASCIILine(title=_(u'Valuta'),
+                    #invoiceTotalVat = schema.ASCIILine(title=_(u'Total moms'),
+                    #invoiceTotalAmount = schema.ASCIILine(title=_(u'Totalt belopp'),
+                    #InvoiceImage = NamedBlobFile(title=_(u'Faktura'),
+
+                    invoice = dotdictify(objfields)
+                    invoice.title = invoice.invoiceNo
+
+                    #invoiceReferences = invoice.invoiceReferences
+                    #use the first reference as recipient
+                    #objfields = invoiceReferences[0]
+
+                    #invoiceReference = dotdictify(invoice.invoiceReference)
+                    invoice.invoiceRecipient = invoice.invoiceReference.userName
+                    invoice.invoiceRecipientName = invoice.invoiceReference.displayName
+
+                    invoice.invoiceExpireDate = datetime.strptime(invoice.invoiceExpireDate, '%Y-%m-%d')
+                    invoice.invoiceDate = datetime.strptime(invoice.invoiceDate, '%Y-%m-%d')
+                    #import pdb; pdb.set_trace()
+
+                    content = createContent(portal_type="hejasverige.Invoice",
+                                            title=invoice.title,
+                                            description=invoice.invoiceDescription,
+                                            invoiceNo=invoice.invoiceNo,
+                                            invoiceSender=invoice.senderId,
+                                            invoiceSenderName=invoice.senderName,
+                                            invoiceRecipient=invoice.invoiceRecipient,
+                                            invoiceRecipientName=invoice.invoiceRecipientName,
+                                            invoiceDate=invoice.invoiceDate,
+                                            invoicePayCondition=invoice.invoicePayCondition,
+                                            invoiceExpireDate=invoice.invoiceExpireDate,
+                                            invoiceCurrency=invoice.invoiceCurrency,
+                                            invoiceTotalVat=invoice.invoiceTotalVat,
+                                            invoiceTotalAmount=invoice.invoiceTotalCost
+                                            )
+
+                    # Get the field containing data
+                    fields = getFieldsInOrder(IInvoice)
+                    file_fields = [field for name, field in fields
+                                   if INamedFileField.providedBy(field)
+                                   or INamedImageField.providedBy(field)
+                                   ]
+                    for file_field in file_fields:
+                        if IPrimaryField.providedBy(file_field):
+                            break
+                        else:
+                            # Primary field can't be set ttw,
+                            # then, we take the first one
+                            file_field = file_fields[0]
+
+                    import pdb
+                    pdb.set_trace()
+
+                    value = NamedBlobFile(data=invoicefile,
+                                          contentType=contenttype,
+                                          filename=unicode(filename, 'utf-8'))
+
+                    file_field.set(content, value)
+
+                    folder = self.context['invoices']
+
+                    item = addContentToContainer(container=folder, object=content, checkConstraints=False)
+
+                    # set the recipient to owner of the invoice. Otherwise it will not show up for the recipient in MyAccount View.
+                    self.set_owner(item)
+
+                    #content.reindexObject()
+
+                    print item.id
+                except Exception, ex:
+                    data.append({'error': 'Could not create invoice object. Reason: ' + str(ex)})
+                    self.request.response.setStatus(500, "")
                     self.request.response.setHeader('Content-Type', 'application/json')
                     return json.dumps(data)
-                else:
-                    try:
-                        #invoiceNo
-                        #invoiceSender
-                        #invoiceSenderName = schema.ASCIILine(title=_(u'Avsändare namn'),
-                        #invoiceRecipient = schema.ASCIILine(title=_(u'Mottagare'),
-                        #invoiceRecipientName = schema.ASCIILine(title=_(u'Mottagare namn'),
-                        #externalId = schema.ASCIILine(title=_(u'Externt Id'),
-                        #invoiceDate = schema.Date(title=_(u'Fakturadatum'),
-                        #invoicePayCondition = schema.ASCIILine(title=_(u'Betalningsvillkor'),
-                        #invoiceExpireDate = schema.Date(title=_(u'Förfallodatum'),
-                        #invoiceCurrency = schema.ASCIILine(title=_(u'Valuta'),
-                        #invoiceTotalVat = schema.ASCIILine(title=_(u'Total moms'),
-                        #invoiceTotalAmount = schema.ASCIILine(title=_(u'Totalt belopp'),
-                        #InvoiceImage = NamedBlobFile(title=_(u'Faktura'),
 
-                        invoice = dotdictify(objfields)
-                        invoice.title = invoice.invoiceNo
-
-                        #invoiceReferences = invoice.invoiceReferences
-                        #use the first reference as recipient
-                        #objfields = invoiceReferences[0]
-
-                        #invoiceReference = dotdictify(invoice.invoiceReference)
-                        invoice.invoiceRecipient = invoice.invoiceReference.userName
-                        invoice.invoiceRecipientName = invoice.invoiceReference.displayName
-
-                        invoice.invoiceExpireDate = datetime.strptime(invoice.invoiceExpireDate, '%Y-%m-%d')
-                        invoice.invoiceDate = datetime.strptime(invoice.invoiceDate, '%Y-%m-%d')
-                        #import pdb; pdb.set_trace()
-
-                        content = createContent(portal_type="hejasverige.Invoice",
-                                                title=invoice.title,
-                                                description=invoice.invoiceDescription,
-                                                invoiceNo=invoice.invoiceNo,
-                                                invoiceSender=invoice.senderId,
-                                                invoiceSenderName=invoice.senderName,
-                                                invoiceRecipient=invoice.invoiceRecipient,
-                                                invoiceRecipientName=invoice.invoiceRecipientName,
-                                                invoiceDate=invoice.invoiceDate,
-                                                invoicePayCondition=invoice.invoicePayCondition,
-                                                invoiceExpireDate=invoice.invoiceExpireDate,
-                                                invoiceCurrency=invoice.invoiceCurrency,
-                                                invoiceTotalVat=invoice.invoiceTotalVat,
-                                                invoiceTotalAmount=invoice.invoiceTotalCost
-                                                )
-
-                        # Get the field containing data
-                        fields = getFieldsInOrder(IInvoice)
-                        file_fields = [field for name, field in fields
-                                       if INamedFileField.providedBy(field)
-                                       or INamedImageField.providedBy(field)
-                                       ]
-                        for file_field in file_fields:
-                            if IPrimaryField.providedBy(file_field):
-                                break
-                            else:
-                                # Primary field can't be set ttw,
-                                # then, we take the first one
-                                file_field = file_fields[0]
-
-                        value = NamedBlobFile(data=invoicefile,
-                                              contentType=contenttype,
-                                              filename=unicode(filename, 'utf-8'))
-
-                        file_field.set(content, value)
-
-                        folder = self.context['invoices']
-
-                        item = addContentToContainer(container=folder, object=content, checkConstraints=False)
-
-                        # set the recipient to owner of the invoice. Otherwise it will not show up for the recipient in MyAccount View.
-                        self.set_owner(item)
-
-                        #content.reindexObject()
-                        #import pdb
-                        #pdb.set_trace()
-
-                        print item.id
-                    except Exception, ex:
-                        data.append({'error': 'Could not create invoice object ' + str(ex)})
-                        self.request.response.setStatus(500, "")
-                        self.request.response.setHeader('Content-Type', 'application/json')
-                        return json.dumps(data)
-
-                data.append({'storageid': item.id})
+                data.append({'storageid': item.id, 'UID': item.UID()})
                 self.request.response.setStatus(201, "")
                 #import pdb; pdb.set_trace()
 
