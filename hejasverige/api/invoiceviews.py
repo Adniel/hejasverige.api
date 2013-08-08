@@ -330,8 +330,8 @@ class CreateInvoiceView(grok.View):
                             # then, we take the first one
                             file_field = file_fields[0]
 
-                    import pdb
-                    pdb.set_trace()
+                    #import pdb
+                    #pdb.set_trace()
 
                     value = NamedBlobFile(data=invoicefile,
                                           contentType=contenttype,
