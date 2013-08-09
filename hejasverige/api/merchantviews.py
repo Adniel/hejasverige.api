@@ -96,6 +96,11 @@ class ListMerchantsView(grok.View):
         else:
             customerId = merchant.customerId
 
+        try:
+            transaction_fee = merchant.transaction_fee
+        except:
+            transaction_fee = ''
+
         if not merchant.transaction_description:
             transaction_description = []
         else:
@@ -107,6 +112,7 @@ class ListMerchantsView(grok.View):
                            'supplier_id': supplierId,
                            'customer_id': customerId,
                            'discount': discount,
+                           #'transaction_fee': transaction_fee,
                            'transaction_description': transaction_description,
                            'stores': stores,
                            }
@@ -175,11 +181,18 @@ class GetMerchantByDescription(grok.View):
                         if match:
                             merchant_obj = merchant.getObject()
 
+                            try:
+                                transaction_fee = merchant_obj.transaction_fee
+                            except:
+                                transaction_fee = ''
+
+
                             data.append({'name': merchant_obj.title,
                                          'corporate_id': merchant_obj.corporateId,
                                          'supplier_id': merchant_obj.supplierId,
                                          'customer_id': merchant_obj.customerId,
                                          'discount': merchant_obj.discount,
+                                         'transaction_fee': transaction_fee,
                                          'description': description,
                                          'matching_description': transaction_description,
                                          })

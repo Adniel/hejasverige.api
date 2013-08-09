@@ -354,7 +354,7 @@ class CreateInvoiceView(grok.View):
                     self.request.response.setStatus(500, "")
                     self.request.response.setHeader('Content-Type', 'application/json')
                     return json.dumps(data)
-
+                #import pdb; pdb.set_trace()
                 data.append({'storageid': item.id, 'UID': item.UID()})
                 self.request.response.setStatus(201, "")
                 #import pdb; pdb.set_trace()
