@@ -10,6 +10,7 @@ from Products.CMFCore.utils import getToolByName
 from plone.memoize.instance import memoize
 import re
 
+# TODO: make sure we only list published merchants
 @memoize
 def get_merchants(context):
     catalog = getToolByName(context.context, 'portal_catalog')
@@ -26,6 +27,7 @@ class ListMerchantsView(grok.View):
     grok.name('list-merchants')
     grok.require('hejasverige.ApiView')  # this is the security declaration
 
+    # TODO: make sure we only list published merchants
     @memoize
     def get_merchants(self):
         catalog = getToolByName(self.context, 'portal_catalog')
@@ -100,6 +102,11 @@ class ListMerchantsView(grok.View):
             transaction_fee = merchant.transaction_fee
         except:
             transaction_fee = ''
+        # Value is missing in the catalog. Type Missing.Value name == 'Value'
+        if type(transaction_fee).__name__ == 'Value':
+            transaction_fee = ''
+
+        #import pdb; pdb.set_trace()
 
         if not merchant.transaction_description:
             transaction_description = []
@@ -112,7 +119,7 @@ class ListMerchantsView(grok.View):
                            'supplier_id': supplierId,
                            'customer_id': customerId,
                            'discount': discount,
-                           #'transaction_fee': transaction_fee,
+                           'transaction_fee': transaction_fee,
                            'transaction_description': transaction_description,
                            'stores': stores,
                            }
@@ -184,7 +191,15 @@ class GetMerchantByDescription(grok.View):
                             try:
                                 transaction_fee = merchant_obj.transaction_fee
                             except:
-                                transaction_fee = ''
+                                merchant.getObject().reindexObject()
+                                try:
+                                    transaction_fee = merchant_obj.transaction_fee
+                                except:
+                                    transaction_fee = ''
+                                # Value is missing in the catalog. Type Missing.Value name == 'Value'
+                                if type(transaction_fee).__name__ == 'Value':
+                                    transaction_fee = ''
+
 
 
                             data.append({'name': merchant_obj.title,
