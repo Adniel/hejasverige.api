@@ -206,7 +206,7 @@ class CreateInvoiceView(grok.View):
                     msg=p.parse(buf)
                     partCounter=1
                     for part in msg.walk():
-                        import pdb; pdb.set_trace()
+                        #import pdb; pdb.set_trace()
                         if part.get_content_maintype()=="multipart":
                             continue
                         name=part.get_param("name")
@@ -235,9 +235,28 @@ class CreateInvoiceView(grok.View):
             else:
                 # request was sent as a real multipart
                 logger.info('Payload not received in request BODY. Good...')
-                # import pdb;pdb.set_trace()
+                #import pdb;pdb.set_trace()
                 invoicedata = self.request.get('invoice-data')
-                invoicefile = self.request.get('invoice-file').readlines()[0]
+                f = self.request.get('invoice-file')
+                f.seek(0, 0) 
+
+                #invoicefile = fileupload.readlines()
+
+                invoicefile = byte = f.read(1)
+                while byte:
+                    # Do stuff with byte.
+                    byte = f.read(1)
+                    invoicefile = invoicefile + byte
+
+                #import pdb;pdb.set_trace()
+                # If named files are used? the uploaded file is not readble directly in the stream?
+                if not invoicefile:
+                    namedfile = open(self.request.get('invoice-file').name, 'rb')
+                    invoicefile = namedfile.readlines()
+                
+                if invoicefile:
+                    invoicefile = invoicefile[0]
+
                 filename = self.request.get('invoice-file').filename
                 contenttype = self.request['invoice-file'].headers['content-type']
                 transfer_encoding = None
@@ -355,7 +374,7 @@ class CreateInvoiceView(grok.View):
                     self.request.response.setHeader('Content-Type', 'application/json')
                     return json.dumps(data)
                 #import pdb; pdb.set_trace()
-                data.append({'storageid': item.id, 'UID': item.UID()})
+                data.append({'storageid': item.id, 'UID': item.UID(), 'bankid': item.externalId})
                 self.request.response.setStatus(201, "")
                 #import pdb; pdb.set_trace()
 
