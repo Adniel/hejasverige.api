@@ -172,32 +172,35 @@ class GetMember(grok.View):
                 guardians = []
                 for person in persons:
                     user = person.getObject().getOwner()
-                    guardian = {}
-                    guardian['personal_id'] = user.getProperty('personal_id')
-                    if show_details:
-                        guardian['username'] = str(user)
-                        guardian['email'] = user.getProperty('email')
-                        guardian['fullname'] = user.getProperty('fullname')
-                        guardian['address1'] = user.getProperty('address1')
-                        guardian['address2'] = user.getProperty('address2')
-                        guardian['postal_code'] = user.getProperty('postal_code')
-                        guardian['city'] = user.getProperty('city')          
-                        guardian['kollkoll'] = user.getProperty('kollkoll')
+                    # check that the user has an Id
+                    # removed users with orphant persons will otherwise errounously show up here
+                    if user.getId():                  
+                        guardian = {}
+                        guardian['personal_id'] = user.getProperty('personal_id')
+                        if show_details:
+                            guardian['username'] = str(user)
+                            guardian['email'] = user.getProperty('email')
+                            guardian['fullname'] = user.getProperty('fullname')
+                            guardian['address1'] = user.getProperty('address1')
+                            guardian['address2'] = user.getProperty('address2')
+                            guardian['postal_code'] = user.getProperty('postal_code')
+                            guardian['city'] = user.getProperty('city')          
+                            guardian['kollkoll'] = user.getProperty('kollkoll')
 
-                    # persons managed club relations
-                    query = {'object_provides': IRelation.__identifier__,
-                             'path': dict(query=person.getPath(),)}
-                    if vat_no:
-                       query['personal_id'] = vat_no 
+                        # persons managed club relations
+                        query = {'object_provides': IRelation.__identifier__,
+                                 'path': dict(query=person.getPath(),)}
+                        if vat_no:
+                           query['personal_id'] = vat_no 
 
-                    clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID)
-                             for club in 
-                             catalog(query)]
-                    guardian['associated_clubs'] = clubs
+                        clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID)
+                                 for club in 
+                                 catalog(query)]
+                        guardian['associated_clubs'] = clubs
 
-                    # only include guardians where club is present
-                    if clubs:
-                        guardians.append(guardian)
+                        # only include guardians where club is present
+                        if clubs:
+                            guardians.append(guardian)
                 
                 data['guardians'] = guardians
 
@@ -227,7 +230,7 @@ class GetMember(grok.View):
                 rec['vat_no'] = club.get('clubobj').VatNo
                 if rec['vat_no']:
                     rec['vat_no'] = rec['vat_no'].replace('-','')
-                    
+
                 associated_clubs.append(rec)
 
             # make clubs list unique 
