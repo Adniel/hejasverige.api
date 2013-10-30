@@ -224,7 +224,10 @@ class GetMember(grok.View):
                     rec['name'] = club.get('clubobj').title
 
                 rec['uid'] = club.get('clubobj').UID()
-                rec['vat_no'] = club.get('clubobj').VatNo.replace('-','')
+                rec['vat_no'] = club.get('clubobj').VatNo
+                if rec['vat_no']:
+                    rec['vat_no'] = rec['vat_no'].replace('-','')
+                    
                 associated_clubs.append(rec)
 
             # make clubs list unique 
