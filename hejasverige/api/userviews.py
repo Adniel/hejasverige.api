@@ -71,6 +71,7 @@ class GetMembers(grok.View):
     def get_club_relations(self, id):
         #import pdb; pdb.set_trace()
         catalog = getToolByName(self.context, 'portal_catalog')
+        '''
         relationw = [dict(creator=relation.Creator,
                           title=relation.Title,
                           vat_no=relation.personal_id,
@@ -81,12 +82,21 @@ class GetMembers(grok.View):
                      'personal_id': id, 
                      })
                      ]
+        '''
+
+        query = {'object_provides': IRelation.__identifier__,
+                 'personal_id': id,
+                 }
+
+        status = self.request.form.get('status', None)
+        if status:
+            logger.debug('status: %s' % status)
+            review_states = [x.strip() for x in status.split(',')]
+            query['review_state'] = review_states
 
         relations = [self.get_person(relation)
                      for relation in
-                     catalog({'object_provides': IRelation.__identifier__,
-                     'personal_id': id, 
-                     })
+                     catalog(query)
                      ]
 
         return relations
@@ -118,12 +128,20 @@ class GetMember(grok.View):
     def get_clubs_from_relations(self, path):
         catalog = getToolByName(self.context, 'portal_catalog')
 
+        query = {'object_provides': IRelation.__identifier__,
+                 'path': dict(query=path,),
+                 'sort_on': 'sortable_title'}
+
+        status = self.request.form.get('status', None)
+        if status:
+            logger.debug('status: %s' % status)
+            review_states = [x.strip() for x in status.split(',')]
+            query['review_state'] = review_states
+
         clubs = [dict(clubobj=uuidToObject(relation.getObject().foreign_id),
                  relation=relation)
                  for relation in
-                 catalog({'object_provides': IRelation.__identifier__,
-                 'path': dict(query=path,),
-                 'sort_on': 'sortable_title'})]
+                 catalog(query)]
 
         clubs = [x for x in clubs if x]
 
@@ -190,12 +208,19 @@ class GetMember(grok.View):
                         # persons managed club relations
                         query = {'object_provides': IRelation.__identifier__,
                                  'path': dict(query=person.getPath(),)}
+
                         if vat_no:
                            query['personal_id'] = vat_no 
 
-                        clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID)
+                        status = self.request.form.get('status', None)
+                        if status:
+                            logger.debug('status: %s' % status)
+                            review_states = [x.strip() for x in status.split(',')]
+                            query['review_state'] = review_states
+
+                        clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID, status=club.review_state)
                                  for club in 
-                                 catalog(query)]
+                                 catalog(query) if club.personal_id]
                         guardian['associated_clubs'] = clubs
 
                         # only include guardians where club is present
@@ -228,6 +253,7 @@ class GetMember(grok.View):
 
                 rec['uid'] = club.get('clubobj').UID()
                 rec['vat_no'] = club.get('clubobj').VatNo
+                rec['status'] =  club.get('relation').review_state
                 if rec['vat_no']:
                     rec['vat_no'] = rec['vat_no'].replace('-','')
 
