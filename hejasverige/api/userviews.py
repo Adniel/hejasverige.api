@@ -163,42 +163,43 @@ class GetMember(grok.View):
                       'personal_id': personalid,
                       'sort_on': 'sortable_title'})
 
-            data['type'] = 'person'
-            data['personal_id'] = persons[0].personal_id
-            if show_details:
-                data['name'] = persons[0].Title
-
-            guardians = []
-            for person in persons:
-                user = person.getObject().getOwner()
-                guardian = {}
-                guardian['personal_id'] = user.getProperty('personal_id')
+            if persons:
+                data['type'] = 'person'
+                data['personal_id'] = persons[0].personal_id
                 if show_details:
-                    guardian['username'] = str(user)
-                    guardian['email'] = user.getProperty('email')
-                    guardian['fullname'] = user.getProperty('fullname')
-                    guardian['address1'] = user.getProperty('address1')
-                    guardian['address2'] = user.getProperty('address2')
-                    guardian['postal_code'] = user.getProperty('postal_code')
-                    guardian['city'] = user.getProperty('city')          
-                    guardian['kollkoll'] = user.getProperty('kollkoll')
+                    data['name'] = persons[0].Title
 
-                # persons managed club relations
-                query = {'object_provides': IRelation.__identifier__,
-                         'path': dict(query=person.getPath(),)}
-                if vat_no:
-                   query['personal_id'] = vat_no 
+                guardians = []
+                for person in persons:
+                    user = person.getObject().getOwner()
+                    guardian = {}
+                    guardian['personal_id'] = user.getProperty('personal_id')
+                    if show_details:
+                        guardian['username'] = str(user)
+                        guardian['email'] = user.getProperty('email')
+                        guardian['fullname'] = user.getProperty('fullname')
+                        guardian['address1'] = user.getProperty('address1')
+                        guardian['address2'] = user.getProperty('address2')
+                        guardian['postal_code'] = user.getProperty('postal_code')
+                        guardian['city'] = user.getProperty('city')          
+                        guardian['kollkoll'] = user.getProperty('kollkoll')
 
-                clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID)
-                         for club in 
-                         catalog(query)]
-                guardian['associated_clubs'] = clubs
+                    # persons managed club relations
+                    query = {'object_provides': IRelation.__identifier__,
+                             'path': dict(query=person.getPath(),)}
+                    if vat_no:
+                       query['personal_id'] = vat_no 
 
-                # only include guardians where club is present
-                if clubs:
-                    guardians.append(guardian)
-            
-            data['guardians'] = guardians
+                    clubs = [dict(vat_no=club.personal_id, name=club.Title, uid=club.UID)
+                             for club in 
+                             catalog(query)]
+                    guardian['associated_clubs'] = clubs
+
+                    # only include guardians where club is present
+                    if clubs:
+                        guardians.append(guardian)
+                
+                data['guardians'] = guardians
 
         else:
             mship = getToolByName(self, 'portal_membership')
