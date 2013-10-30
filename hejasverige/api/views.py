@@ -318,7 +318,11 @@ class ListUsersByAssociation(grok.View):
 
         self.request.response.setHeader('Content-Type', 'application/json')
         return json.dumps(data)
+        
+        # Use list-recipients instead
 
+        #from urllib import urlencode
+        #return self.request.response.redirect('@@list-recipients?' + urlencode({'vat_no': self.request.form.get('id', '')}))
 
 class CheckUserAccountView(grok.View):
 
